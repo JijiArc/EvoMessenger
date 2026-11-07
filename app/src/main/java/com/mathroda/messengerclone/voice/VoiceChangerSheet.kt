@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,6 +67,7 @@ import kotlin.math.roundToInt
  * @param onSend hands the clip to Messenger (or the share sheet when Messenger is not installed).
  * @param onShareOther always opens the share sheet so another app can be picked.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun VoiceChangerSheet(
     viewModel: VoiceChangerViewModel,
