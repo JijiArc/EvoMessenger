@@ -1,3 +1,68 @@
+# Purple Messenger Lite
+
+A lightweight, Messenger Lite-style chat app for Android 10 and newer (target device: Realme 5, arm64), with two built-in extras:
+
+- **Voice changer.** Tap the microphone in a conversation, pick a voice (Normal, Monster, Ghost, Robot, Alien, Digital Monster), record, preview, then send. It is shared as an M4A audio file through Messenger's share target or the Android share sheet. It is **not** a native Messenger voice note.
+- **Link scanner.** Tap the shield icon in the chat list header, add your own free VirusTotal API key, and check a link before you open it. The app never opens the scanned link for you.
+
+This is a fork of [MathRoda's Messenger clone](https://github.com/MathRoda/Messenger-clone) (Apache 2.0). The chat itself runs on **Stream Chat**, so this is a separate messaging service and **not your Facebook inbox**.
+
+> **Status: source only, not yet built or tested on a device.** No APK is included, because the environment this was written in had no Android SDK or network. Read [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) and [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md) first. Expect to fix a few compile errors on the first build.
+
+## What changed from the original project
+
+- minSdk 29, app renamed, purple theme, microphone permission, `FileProvider`, `allowBackup` off, HTTPS only.
+- Removed the hardcoded Stream demo API key and demo users. You now sign in with **your own** Stream key (see below).
+- Chat token and VirusTotal key are stored with `EncryptedSharedPreferences`.
+- New code: `voice/` (recording, effects, M4A encoding, sharing, bottom sheet) and `scanner/` (URL checks, VirusTotal client, screen).
+
+## Build
+
+You need Android Studio (a version that opens AGP 7.2.1 projects, such as Chipmunk or newer; newer versions may offer to upgrade the plugin, which you can decline for now) with the Android SDK 32 platform installed.
+
+1. Open this folder in Android Studio and let Gradle sync.
+2. Build a debuggable APK: `./gradlew assembleDebug` (on Windows: `gradlew.bat assembleDebug`).
+3. The APK is at `app/build/outputs/apk/debug/app-debug.apk`. It is a single universal APK (no splits) and the app ships no native code of its own.
+
+## Install on the phone
+
+1. Copy `app-debug.apk` to the phone, or connect it with USB debugging on and run `adb install -r app-debug.apk`.
+2. If you install by tapping the file, allow "Install unknown apps" for your file manager when asked.
+
+## Set up chat (Stream)
+
+1. Create a free app at [getstream.io](https://getstream.io/chat/) and copy its **API key**.
+2. For testing, in the Stream dashboard turn on **Disable Auth Checks** for the app. Then you can leave the token field empty and the app uses a development token. For real use, generate user tokens on a server you control and paste one in.
+3. Open the app and enter the API key and a user ID (letters, numbers, `@`, `_`, `-`). Do the same on a second phone or account with a different user ID to chat.
+
+## Using the voice changer
+
+Open a conversation and tap the microphone icon. Choose a voice, tap the round microphone button to record, tap stop, then **Play preview**. You can switch voice or change the strength slider after recording and the same clip is re-rendered. Tap **Send via Messenger** (or **Share voice message** if Messenger is not installed), then choose the chat inside Messenger and send.
+
+Recording stops if you leave the app or a call comes in; what was recorded so far is kept.
+
+## Using the link scanner
+
+Tap the shield icon at the top of the chat list. Paste your VirusTotal API key once ([free key](https://www.virustotal.com/gui/join-us)). Type or paste a link and tap **Scan link**.
+
+## Privacy
+
+- The only permissions are Internet and Microphone. The microphone is requested only when you tap record.
+- Audio is processed on the phone. Recordings are temporary files in the app cache and are deleted when you cancel or replace them; shared files are removed within about an hour.
+- Scanning a link sends that link to VirusTotal (a Google service), which may share submitted links with security vendors. Do not scan links that contain private information.
+- Your VirusTotal key is only sent to VirusTotal. Your chat token is only sent to Stream. Both are stored encrypted on the phone and are never logged.
+- The app collects no analytics and has no hidden data collection of its own. Messages go through Stream, which has its own privacy policy.
+
+## Checks you can run without Android
+
+`tools/jvm-checks/run-checks.sh` compiles and runs the plain-Kotlin checks for the voice effects and the link scanner logic (needs `kotlinc`).
+
+More: [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md), [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md), [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md).
+
+---
+
+# Original project README
+
 ![](MessengerClone/messenger-clone.jpg)
 
 # **Messenger Clone** 

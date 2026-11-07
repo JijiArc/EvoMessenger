@@ -30,6 +30,7 @@ import com.mathroda.messengerclone.ui.BaseConnectedActivity
 import com.mathroda.messengerclone.ui.channels.components.MessengerCloneBottomBar
 import com.mathroda.messengerclone.ui.channels.components.MessengerCloneChannelList
 import com.mathroda.messengerclone.ui.channels.components.MessengerCloneListHeader
+import com.mathroda.messengerclone.scanner.ScannerActivity
 import com.mathroda.messengerclone.ui.messages.MessagesActivity
 import com.mathroda.messengerclone.ui.profile.ProfileActivity
 import com.mathroda.messengerclone.ui.search.SearchActivity
@@ -108,6 +109,7 @@ class ChannelsActivity: BaseConnectedActivity() {
                     if (isShowingHeader) {
                         MessengerCloneListHeader(
                             onHeaderActionClick = onHeaderActionClick,
+                            onScannerClick = ::openScanner,
                             onAvatarClick = { onHeaderAvatarClick() },
                             currentUser = user,
                             title = title,
@@ -217,6 +219,10 @@ class ChannelsActivity: BaseConnectedActivity() {
         finish()
         startActivity(ProfileActivity.getIntent(this))
         overridePendingTransition(0, 0)
+    }
+
+    private fun openScanner() {
+        startActivity(ScannerActivity.createIntent(this))
     }
 
     private fun openSearch() {

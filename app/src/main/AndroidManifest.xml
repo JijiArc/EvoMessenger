@@ -4,10 +4,23 @@
     package="com.mathroda.messengerclone">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Requested at runtime, only when the user taps Record in the voice sheet. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- The microphone is the only hardware the voice changer needs. -->
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
+
+    <!-- Lets the app see whether Messenger is installed (needed on Android 11+ when targetSdk >= 30). -->
+    <queries>
+        <package android:name="com.facebook.orca" />
+        <package android:name="com.facebook.mlite" />
+    </queries>
 
     <application
         android:name=".MessengerApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -15,7 +28,26 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MessengerClone"
+        android:usesCleartextTraffic="false"
         tools:targetApi="31">
+
+        <!-- Shares voice recordings from cacheDir/voice only. Own subclass avoids a manifest clash with libraries. -->
+        <provider
+            android:name=".voice.VoiceFileProvider"
+            android:authorities="${applicationId}.voicefiles"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/voice_file_paths" />
+        </provider>
+
+        <activity
+            android:name=".scanner.ScannerActivity"
+            android:exported="false"
+            android:label="@string/title_activity_scanner"
+            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.search.SearchActivity"
             android:exported="false"
@@ -35,7 +67,8 @@
             android:name=".ui.login.UserLoginActivity"
             android:exported="false"
             android:label="@string/title_activity_user_login"
-            android:theme="@style/Theme.MessengerClone" />
+            android:theme="@style/Theme.MessengerClone"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.messages.MessagesActivity"
             android:exported="false"

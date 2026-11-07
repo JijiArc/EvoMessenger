@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Only the voice/ folder inside the app cache can be shared. -->
+    <cache-path
+        name="voice"
+        path="voice/" />
+</paths>

@@ -17,17 +17,19 @@ fun ComposerIcon(
     modifier: Modifier = Modifier,
     enabled: Boolean,
     painter: Painter,
+    contentDescription: String? = null,
     onClick: () -> Unit
 ) {
     IconButton(
         enabled = enabled,
         modifier = modifier
-            .size(32.dp)
-            .padding(6.dp),
+            .size(40.dp)
+            .padding(8.dp),
         content = {
             Icon(
                 painter = painter,
-                contentDescription = stringResource(id = R.string.stream_compose_attachments),
+                contentDescription = contentDescription
+                    ?: stringResource(id = R.string.stream_compose_attachments),
                 tint = BottomSelected,
             )
         },

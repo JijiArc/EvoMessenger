@@ -2,7 +2,6 @@ package com.mathroda.messengerclone
 
 import android.app.Application
 import com.getstream.sdk.chat.utils.DateFormatter
-import com.mathroda.messengerclone.data.PredefinedUserCredentials
 import com.mathroda.messengerclone.data.UserCredentialsRepository
 import com.mathroda.messengerclone.utils.MessengerHelper
 import io.getstream.chat.android.client.utils.internal.toggle.ToggleService
@@ -17,12 +16,12 @@ class MessengerApp: Application() {
         dateFormatter = DateFormatter.from(this)
 
         initializeToggleService()
-        MessengerHelper.initializeSdk(this, getApiKey())
 
-    }
-
-    private fun getApiKey(): String {
-        return credentialsRepository.loadApiKey() ?: PredefinedUserCredentials.API_KEY
+        // No API key is bundled with the app. The chat client is only built once the user has
+        // signed in with their own Stream project key (see UserLoginActivity).
+        credentialsRepository.loadApiKey()?.let { savedKey ->
+            MessengerHelper.initializeSdk(this, savedKey)
+        }
     }
 
     @OptIn(InternalStreamChatApi::class)

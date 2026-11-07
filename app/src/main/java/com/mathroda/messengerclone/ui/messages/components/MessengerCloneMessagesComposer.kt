@@ -39,6 +39,7 @@ fun MessengerCloneMessagesComposer(
     modifier: Modifier = Modifier,
     onSendMessage: (Message) -> Unit = { viewModel.sendMessage(it) },
     onAttachmentsClick: () -> Unit = {},
+    onMicClick: () -> Unit = {},
     onValueChange: (String) -> Unit = { viewModel.setMessageInput(it) },
     onAttachmentRemoved: (Attachment) -> Unit = { viewModel.removeSelectedAttachment(it) },
     onCancelAction: () -> Unit = { viewModel.dismissMessageActions() },
@@ -73,6 +74,7 @@ fun MessengerCloneMessagesComposer(
         DefaultComposerIntegration(
             messageInputState = it,
             onAttachmentsClick = onAttachmentsClick,
+            onMicClick = onMicClick,
             ownCapabilities = it.ownCapabilities
         )
     },
@@ -234,6 +236,7 @@ internal fun DefaultCommandPopupContent(
 internal fun DefaultComposerIntegration(
     messageInputState: MessageComposerState,
     onAttachmentsClick: () -> Unit,
+    onMicClick: () -> Unit,
     ownCapabilities: Set<String>,
 ) {
     val hasTextInput = messageInputState.inputValue.isNotEmpty()
@@ -287,10 +290,11 @@ internal fun DefaultComposerIntegration(
 
                 ComposerIcon(
                     modifier = Modifier.size(38.dp),
-                    enabled = false,
-                    painter = painterResource(id = R.drawable.ic_mic)
+                    enabled = true,
+                    painter = painterResource(id = R.drawable.ic_mic),
+                    contentDescription = "Record voice message"
                 ) {
-
+                    onMicClick()
                 }
             }
         }

@@ -6,6 +6,8 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -39,6 +41,7 @@ import io.getstream.chat.android.compose.ui.theme.ChatTheme
     elevation: Dp = ChatTheme.dimens.headerElevation,
     onAvatarClick: (User?) -> Unit = {},
     onHeaderActionClick: () -> Unit = {},
+    onScannerClick: () -> Unit = {},
     leadingContent: @Composable RowScope.() -> Unit = {
         DefaultChannelHeaderLeadingContent(
             currentUser = currentUser,
@@ -49,7 +52,8 @@ import io.getstream.chat.android.compose.ui.theme.ChatTheme
     },
     trailingContent: @Composable RowScope.() -> Unit = {
         DefaultChannelListHeaderTrailingContent(
-            onHeaderActionClick = onHeaderActionClick
+            onHeaderActionClick = onHeaderActionClick,
+            onScannerClick = onScannerClick
         )
     },
 ) {
@@ -63,7 +67,7 @@ import io.getstream.chat.android.compose.ui.theme.ChatTheme
     ) {
         Row(
             Modifier
-                .fillMaxWidth(0.7f)
+                .fillMaxWidth(0.6f)
                 .padding(12.dp),
             verticalAlignment = CenterVertically,
             horizontalArrangement = Arrangement.Start
@@ -73,7 +77,7 @@ import io.getstream.chat.android.compose.ui.theme.ChatTheme
 
         Row (
             Modifier
-                .fillMaxWidth(0.3f)
+                .fillMaxWidth(0.4f)
                 .padding(12.dp),
             verticalAlignment = CenterVertically,
             horizontalArrangement = Arrangement.End
@@ -140,12 +144,13 @@ internal fun DefaultChannelHeaderLeadingContent(
 @Composable
 internal fun DefaultChannelListHeaderTrailingContent(
     onHeaderActionClick: () -> Unit,
+    onScannerClick: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.size(35.dp),
+        modifier = Modifier.size(40.dp),
         color = BubbleGray,
         shape = ChatTheme.shapes.avatar,
-        onClick = {},
+        onClick = onScannerClick,
         interactionSource = remember { MutableInteractionSource() },
         indication = rememberRipple(bounded = false),
     ) {
@@ -153,8 +158,8 @@ internal fun DefaultChannelListHeaderTrailingContent(
             modifier = Modifier
                 .wrapContentSize()
                 .size(22.dp),
-            painter = painterResource(id = R.drawable.ic_new_camera),
-            contentDescription = null,
+            imageVector = Icons.Filled.Security,
+            contentDescription = "Link scanner",
             tint = Color.Black,
         )
     }
@@ -163,7 +168,7 @@ internal fun DefaultChannelListHeaderTrailingContent(
 
     Surface(
         modifier = Modifier
-            .size(35.dp),
+            .size(40.dp),
         onClick = onHeaderActionClick,
         interactionSource = remember { MutableInteractionSource() },
         indication = rememberRipple(bounded = false),
@@ -175,7 +180,7 @@ internal fun DefaultChannelListHeaderTrailingContent(
                 .wrapContentSize()
                 .size(22.dp),
             painter = painterResource(id = R.drawable.ic_new_pen),
-            contentDescription = null,
+            contentDescription = "New chat",
             tint = Color.Black,
         )
     }

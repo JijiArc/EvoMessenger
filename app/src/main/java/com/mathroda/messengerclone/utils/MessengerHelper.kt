@@ -10,6 +10,13 @@ import io.getstream.chat.android.offline.plugin.factory.StreamOfflinePluginFacto
 
 object MessengerHelper {
 
+    /** The API key the Stream client was built with, or null if it has not been built yet. */
+    @Volatile
+    private var initializedApiKey: String? = null
+
+    val isSdkInitialized: Boolean
+        get() = initializedApiKey != null
+
     fun initializeSdk(context: Context, apiKey: String) {
 
         val offlinePlugin = StreamOfflinePluginFactory(Config(
@@ -20,6 +27,15 @@ object MessengerHelper {
         ChatClient.Builder(apiKey, context)
             .withPlugin(offlinePlugin)
             .build()
+
+        initializedApiKey = apiKey
+    }
+
+    /** Builds the Stream client if it does not exist yet or was built with a different API key. */
+    fun ensureSdk(context: Context, apiKey: String) {
+        if (initializedApiKey != apiKey) {
+            initializeSdk(context.applicationContext, apiKey)
+        }
     }
 
     fun connectUser(
@@ -47,7 +63,9 @@ object MessengerHelper {
 
     fun disconnectUser() {
         MessengerApp.credentialsRepository.clearCredentials()
-        ChatClient.instance().disconnect()
+        if (isSdkInitialized) {
+            ChatClient.instance().disconnect()
+        }
     }
 
     const val attach_giphy: String = "giphy"

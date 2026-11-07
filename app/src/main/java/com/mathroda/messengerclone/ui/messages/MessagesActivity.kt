@@ -1,9 +1,16 @@
 package com.mathroda.messengerclone.ui.messages
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.animation.*
@@ -15,6 +22,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -25,6 +33,9 @@ import com.mathroda.messengerclone.ui.messages.components.MessengerCloneMessages
 import com.mathroda.messengerclone.ui.messages.components.MessengerCloneSelectedMenu
 import com.mathroda.messengerclone.ui.messages.util.menu.CustomMessageOptionsState
 import com.mathroda.messengerclone.utils.MessengerCloneReactionFactory
+import com.mathroda.messengerclone.voice.VoiceChangerSheet
+import com.mathroda.messengerclone.voice.VoiceChangerViewModel
+import com.mathroda.messengerclone.voice.VoiceSharer
 import io.getstream.chat.android.client.models.Channel
 import io.getstream.chat.android.client.models.Message
 import io.getstream.chat.android.common.model.DeleteMessage
@@ -66,6 +77,61 @@ class MessagesActivity : BaseConnectedActivity() {
     private val listViewModel by viewModels<MessageListViewModel>(factoryProducer = {factory})
     private val attachmentsPickerViewModel by viewModels<AttachmentsPickerViewModel>(factoryProducer = { factory })
     private val composerViewModel by viewModels<MessageComposerViewModel>(factoryProducer = { factory })
+    private val voiceViewModel by viewModels<VoiceChangerViewModel>()
+
+    // Must be registered before the activity starts, so it lives here and not in a composable.
+    private val micPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                voiceViewModel.startRecording()
+            } else {
+                val canAskAgain = ActivityCompat.shouldShowRequestPermissionRationale(
+                    this, Manifest.permission.RECORD_AUDIO
+                )
+                voiceViewModel.onPermissionDenied(permanent = !canAskAgain)
+            }
+        }
+
+    /** Asks for the microphone only now, when the user actually taps record. */
+    private fun startVoiceRecording() {
+        val granted = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            voiceViewModel.startRecording()
+        } else {
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    private fun openAppSettings() {
+        try {
+            startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                }
+            )
+        } catch (e: Exception) {
+            voiceViewModel.showMessage("Open Settings > Apps > this app > Permissions and allow the microphone.")
+        }
+    }
+
+    /** Returns true if a share screen or Messenger was opened. */
+    private fun shareVoice(preferMessenger: Boolean): Boolean {
+        val file = voiceViewModel.output ?: return false
+        val result = VoiceSharer.share(this, file, preferMessenger)
+        if (result == VoiceSharer.Result.FAILED) {
+            voiceViewModel.showMessage("No app on this phone can receive the audio file.")
+            return false
+        }
+        return true
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Android 10 silences background recording, so stop cleanly and keep what was captured.
+        voiceViewModel.onAppBackgrounded()
+    }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -107,6 +173,7 @@ class MessagesActivity : BaseConnectedActivity() {
 
         val connectionState by listViewModel.connectionState.collectAsState()
         val user by listViewModel.user.collectAsState()
+        var showVoiceSheet by rememberSaveable { mutableStateOf(false) }
 
         val backAction = {
             val isInThread = listViewModel.isInThread
@@ -150,6 +217,7 @@ class MessagesActivity : BaseConnectedActivity() {
                             .align(Alignment.Center),
                         viewModel = composerViewModel,
                         onAttachmentsClick = { attachmentsPickerViewModel.changeAttachmentState(true) },
+                        onMicClick = { showVoiceSheet = true },
                         onCancelAction = {
                             listViewModel.dismissAllMessageActions()
                             composerViewModel.dismissMessageActions()
@@ -320,6 +388,31 @@ class MessagesActivity : BaseConnectedActivity() {
                     onDismiss = {
                         attachmentsPickerViewModel.changeAttachmentState(false)
                         attachmentsPickerViewModel.dismissAttachments()
+                    }
+                )
+            }
+
+            if (showVoiceSheet) {
+                VoiceChangerSheet(
+                    viewModel = voiceViewModel,
+                    messengerInstalled = VoiceSharer.installedMessenger(this@MessagesActivity) != null,
+                    onRecordClick = ::startVoiceRecording,
+                    onOpenSettings = ::openAppSettings,
+                    onSend = {
+                        if (shareVoice(preferMessenger = true)) {
+                            voiceViewModel.finishAfterShare()
+                            showVoiceSheet = false
+                        }
+                    },
+                    onShareOther = {
+                        if (shareVoice(preferMessenger = false)) {
+                            voiceViewModel.finishAfterShare()
+                            showVoiceSheet = false
+                        }
+                    },
+                    onDismiss = {
+                        voiceViewModel.resetAll()
+                        showVoiceSheet = false
                     }
                 )
             }
