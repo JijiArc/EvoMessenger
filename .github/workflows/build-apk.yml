@@ -1,10 +1,10 @@
 name: Build debug APK
 
 # Builds the debuggable APK in the cloud so no local Android setup is needed.
-# Runs on every push to the Purple Messenger Lite branch, and on demand from the Actions tab.
+# Runs the unit tests, then builds. Runs on every push to the branches below, and on demand from the Actions tab.
 on:
   push:
-    branches: [purple-messenger-lite]
+    branches: [purple-messenger-lite, webview-messenger]
   workflow_dispatch:
 
 jobs:
@@ -38,10 +38,13 @@ jobs:
           restore-keys: |
             gradle-${{ runner.os }}-
 
-      - name: Build the debug APK
+      - name: Run unit tests
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Build the debug APK
+        run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload the APK
         uses: actions/upload-artifact@v4
@@ -58,5 +61,6 @@ jobs:
           name: build-reports
           path: |
             app/build/reports
+            app/build/test-results
             app/build/outputs/logs
           if-no-files-found: ignore

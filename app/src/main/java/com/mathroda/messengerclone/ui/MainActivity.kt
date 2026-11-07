@@ -1,50 +1,99 @@
 package com.mathroda.messengerclone.ui
 
-import android.app.TaskStackBuilder
-import android.content.Context
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.material.ExperimentalMaterialApi
-import com.mathroda.messengerclone.MessengerApp
-import com.mathroda.messengerclone.ui.channels.ChannelsActivity
-import com.mathroda.messengerclone.ui.login.UserLoginActivity
-import com.mathroda.messengerclone.ui.messages.MessagesActivity
-import com.mathroda.messengerclone.utils.MessengerHelper
+import android.provider.Settings
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.mathroda.messengerclone.scanner.ScannerActivity
+import com.mathroda.messengerclone.ui.theme.PurpleTheme
+import com.mathroda.messengerclone.voice.VoiceChangerViewModel
+import com.mathroda.messengerclone.voice.VoiceSharer
+import com.mathroda.messengerclone.web.MessengerWebViewModel
 
-@ExperimentalMaterialApi
-@ExperimentalFoundationApi
-class MainActivity : AppCompatActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+/**
+ * The only screen. It hosts Facebook's own Messages website in a WebView (see [MessengerScreen]),
+ * plus the app's voice changer and link scanner.
+ */
+class MainActivity : ComponentActivity() {
 
-        val userCredentials = MessengerApp.credentialsRepository.loadUserCredentials()
-        if (userCredentials != null) {
-            MessengerHelper.connectUser(userCredentials)
+    private val webViewModel by viewModels<MessengerWebViewModel>()
+    private val voiceViewModel by viewModels<VoiceChangerViewModel>()
 
-            if (intent.hasExtra(KEY_CHANNEL_ID)) {
-
-                val channelId = requireNotNull(intent.getStringExtra(KEY_CHANNEL_ID))
-                TaskStackBuilder.create(this)
-                    .addNextIntent(ChannelsActivity.createIntent(this))
-                    .addNextIntent(MessagesActivity.getIntent(this, channelId))
-                    .startActivities()
+    // Must be registered before the activity starts, so it lives here and not in a composable.
+    private val micPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                voiceViewModel.startRecording()
             } else {
-                startActivity(ChannelsActivity.createIntent(this))
+                val canAskAgain = ActivityCompat.shouldShowRequestPermissionRationale(
+                    this, Manifest.permission.RECORD_AUDIO
+                )
+                voiceViewModel.onPermissionDenied(permanent = !canAskAgain)
             }
-        } else {
-            startActivity(UserLoginActivity.createIntent(this))
         }
-        finish()
+
+    /** Asks for the microphone only now, when the user actually taps record in the voice changer. */
+    private fun startVoiceRecording() {
+        val granted = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            voiceViewModel.startRecording()
+        } else {
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
     }
 
-    companion object {
-        private const val KEY_CHANNEL_ID = "channelId"
+    private fun openAppSettings() {
+        try {
+            startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                }
+            )
+        } catch (e: Exception) {
+            voiceViewModel.showMessage("Open Settings > Apps > this app > Permissions and allow the microphone.")
+        }
+    }
 
-        fun createIntent(context: Context, channelId: String): Intent {
-            return Intent(context, MainActivity::class.java).apply {
-                putExtra(KEY_CHANNEL_ID, channelId)
+    /** Returns true if a share screen or Messenger was opened. */
+    private fun shareVoice(preferMessenger: Boolean): Boolean {
+        val file = voiceViewModel.output ?: return false
+        val result = VoiceSharer.share(this, file, preferMessenger)
+        if (result == VoiceSharer.Result.FAILED) {
+            voiceViewModel.showMessage("No app on this phone can receive the audio file.")
+            return false
+        }
+        return true
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Android 10 silences background recording, so stop cleanly and keep what was captured.
+        voiceViewModel.onAppBackgrounded()
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            PurpleTheme {
+                MessengerScreen(
+                    webViewModel = webViewModel,
+                    voiceViewModel = voiceViewModel,
+                    messengerAppInstalled = VoiceSharer.installedMessenger(this) != null,
+                    onRecordClick = ::startVoiceRecording,
+                    onOpenSettings = ::openAppSettings,
+                    onShareVoice = ::shareVoice,
+                    onOpenScanner = { startActivity(ScannerActivity.createIntent(this)) }
+                )
             }
         }
     }

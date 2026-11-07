@@ -1,6 +1,6 @@
 # Test report
 
-**Status: not tested on Android.** No APK exists yet and no device or emulator was available. This report separates what was really run from what still needs doing. Nothing in the second part has been run, and nothing there is marked as passed.
+**Status: not tested on Android.** No device or emulator was available, and no Facebook feature has been tried. This report separates what was really run from what still needs doing. Nothing in the second part has been run, and nothing there is marked as passed.
 
 ## Part 1: What was actually run
 
@@ -35,25 +35,45 @@ Mark each result yourself on the device. Everything is **NOT RUN**.
 
 | Test | Result |
 |---|---|
-| Build with `./gradlew assembleDebug` succeeds | NOT RUN |
+| `./gradlew testDebugUnitTest` and `./gradlew assembleDebug` succeed (the GitHub Actions run for this branch is the evidence) | NOT RUN |
 | APK installs on Android 10 (API 29) | NOT RUN |
 | App launches | NOT RUN |
 | Runs on arm64-v8a (Realme 5) | NOT RUN |
-| Permissions: only Internet and Microphone listed in Settings | NOT RUN |
+| Permissions: Internet, Microphone and Camera listed; neither prompts at launch | NOT RUN |
 | Microphone permission requested only when Record is tapped | NOT RUN |
 | Screen layout on the Realme 5 display, portrait and rotated | NOT RUN |
 | Large font size setting (Settings > Display > Font size) | NOT RUN |
 
-### Messaging
+### Facebook Messages in the WebView
+
+Every item is **NOT RUN**. Nothing here has been seen working.
 
 | Test | Result |
 |---|---|
-| Sign in with your own Stream key, user ID (and token) | NOT RUN |
-| Channel list opens, search and profile open, back works | NOT RUN |
-| Open a conversation, type and send a text message | NOT RUN |
-| Keyboard does not cover the input | NOT RUN |
-| Share to Messenger when installed | NOT RUN |
-| Share with Messenger not installed (share sheet appears, no crash) | NOT RUN |
+| App opens and shows Facebook's login page (not a blank or "unsupported browser" page) | NOT RUN |
+| Facebook login with email and password on Facebook's own page | NOT RUN |
+| Two-factor or checkpoint prompt completes inside the WebView | NOT RUN |
+| After login, the real conversation list is visible | NOT RUN |
+| Mobile site offers messaging, or desktop-site toggle makes it appear | NOT RUN |
+| Open an existing conversation and see its history | NOT RUN |
+| Send a text message; it shows in the official Messenger app | NOT RUN |
+| Receive a message sent from another account while the app is open | NOT RUN |
+| Group conversation opens | NOT RUN |
+| Pick and send a photo (file chooser works) | NOT RUN |
+| Play a received video, including full screen | NOT RUN |
+| Record and send a voice message with Facebook's own button (microphone permission prompt) | NOT RUN |
+| Reactions, read receipts, conversation search, contacts | NOT RUN |
+| Close and reopen the app: still signed in | NOT RUN |
+| Force-stop the app and reopen: still signed in | NOT RUN |
+| Back button goes back inside the page, then leaves the app at the start page | NOT RUN |
+| Airplane mode: error screen with Retry; Retry works after reconnecting | NOT RUN |
+| Rotate the phone: page and open conversation stay | NOT RUN |
+| Switch App shell mode and Full-screen mode: page does not reload | NOT RUN |
+| Full-screen handle opens the menu | NOT RUN |
+| Link in a message opens in a Chrome tab, not in the WebView | NOT RUN |
+| "Open in Chrome tab" works and shows Facebook there | NOT RUN |
+| "Sign out and clear data" returns to the login page | NOT RUN |
+| Share to Messenger from the voice changer, with Messenger installed and not installed | NOT RUN |
 
 ### Voice changer
 

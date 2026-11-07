@@ -25,6 +25,7 @@ import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.LinearProgressIndicator
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedButton
 import androidx.compose.material.Slider
 import androidx.compose.material.SliderDefaults
@@ -55,7 +56,6 @@ import androidx.compose.ui.window.DialogProperties
 import com.mathroda.messengerclone.ui.theme.BottomSelected
 import com.mathroda.messengerclone.ui.theme.BubbleGray
 import com.mathroda.messengerclone.ui.theme.resultDanger
-import io.getstream.chat.android.compose.ui.theme.ChatTheme
 import kotlin.math.roundToInt
 
 /**
@@ -90,7 +90,7 @@ fun VoiceChangerSheet(
         ) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = ChatTheme.colors.barsBackground,
+                color = MaterialTheme.colors.surface,
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
             ) {
                 Column(
@@ -109,7 +109,7 @@ fun VoiceChangerSheet(
                             text = "Voice message",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ChatTheme.colors.textHighEmphasis
+                            color = MaterialTheme.colors.onSurface
                         )
                         IconButton(
                             modifier = Modifier.size(48.dp),
@@ -118,7 +118,7 @@ fun VoiceChangerSheet(
                             Icon(
                                 imageVector = Icons.Filled.Close,
                                 contentDescription = "Close voice message",
-                                tint = ChatTheme.colors.textHighEmphasis
+                                tint = MaterialTheme.colors.onSurface
                             )
                         }
                     }
@@ -143,7 +143,7 @@ fun VoiceChangerSheet(
                         modifier = Modifier.fillMaxWidth(),
                         text = viewModel.effect.description,
                         fontSize = 12.sp,
-                        color = ChatTheme.colors.textLowEmphasis
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                     )
 
                     // Strength
@@ -152,7 +152,7 @@ fun VoiceChangerSheet(
                             Text(
                                 text = "Effect strength: ${(viewModel.strength * 100).roundToInt()}%",
                                 fontSize = 14.sp,
-                                color = ChatTheme.colors.textHighEmphasis
+                                color = MaterialTheme.colors.onSurface
                             )
                             Slider(
                                 modifier = Modifier
@@ -172,7 +172,7 @@ fun VoiceChangerSheet(
                             Text(
                                 text = "Lower strength keeps your voice easier to understand.",
                                 fontSize = 12.sp,
-                                color = ChatTheme.colors.textLowEmphasis
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                             )
                         }
                     }
@@ -228,7 +228,7 @@ fun VoiceChangerSheet(
                                 "native Messenger voice note.",
                             fontSize = 12.sp,
                             textAlign = TextAlign.Center,
-                            color = ChatTheme.colors.textLowEmphasis
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                         )
                     }
 
@@ -290,7 +290,7 @@ private fun StatusArea(viewModel: VoiceChangerViewModel) {
                     text = formatTime(viewModel.seconds),
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
-                    color = ChatTheme.colors.textHighEmphasis
+                    color = MaterialTheme.colors.onSurface
                 )
                 StatusText("Recording… tap stop when you are done.")
                 LinearProgressIndicator(
@@ -315,7 +315,7 @@ private fun StatusArea(viewModel: VoiceChangerViewModel) {
                     text = formatTime(viewModel.seconds),
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
-                    color = ChatTheme.colors.textHighEmphasis
+                    color = MaterialTheme.colors.onSurface
                 )
                 StatusText("Ready. Preview it, try another voice, or send it.")
             }
@@ -331,7 +331,7 @@ private fun StatusArea(viewModel: VoiceChangerViewModel) {
                 color = if (phase == VoiceChangerViewModel.Phase.ERROR || viewModel.needsSettings) {
                     resultDanger()
                 } else {
-                    ChatTheme.colors.textHighEmphasis
+                    MaterialTheme.colors.onSurface
                 }
             )
         }
@@ -344,7 +344,7 @@ private fun StatusText(text: String) {
         text = text,
         fontSize = 14.sp,
         textAlign = TextAlign.Center,
-        color = ChatTheme.colors.textLowEmphasis
+        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
     )
 }
 

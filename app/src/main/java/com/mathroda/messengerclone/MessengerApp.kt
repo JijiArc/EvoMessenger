@@ -1,38 +1,16 @@
 package com.mathroda.messengerclone
 
 import android.app.Application
-import com.getstream.sdk.chat.utils.DateFormatter
-import com.mathroda.messengerclone.data.UserCredentialsRepository
-import com.mathroda.messengerclone.utils.MessengerHelper
-import io.getstream.chat.android.client.utils.internal.toggle.ToggleService
-import io.getstream.chat.android.core.internal.InternalStreamChatApi
-import io.getstream.chat.android.state.BuildConfig
+import android.content.pm.ApplicationInfo
+import android.webkit.WebView
 
-class MessengerApp: Application() {
+class MessengerApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        credentialsRepository = UserCredentialsRepository(this)
-        dateFormatter = DateFormatter.from(this)
-
-        initializeToggleService()
-
-        // No API key is bundled with the app. The chat client is only built once the user has
-        // signed in with their own Stream project key (see UserLoginActivity).
-        credentialsRepository.loadApiKey()?.let { savedKey ->
-            MessengerHelper.initializeSdk(this, savedKey)
+        // Remote WebView debugging (chrome://inspect) only in the debuggable build.
+        if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            WebView.setWebContentsDebuggingEnabled(true)
         }
-    }
-
-    @OptIn(InternalStreamChatApi::class)
-    private fun initializeToggleService() {
-        ToggleService.init(applicationContext, mapOf(ToggleService.TOGGLE_KEY_SOCKET_REFACTOR to  BuildConfig.DEBUG))
-    }
-    companion object {
-        lateinit var credentialsRepository: UserCredentialsRepository
-           private set
-
-        lateinit var dateFormatter: DateFormatter
-           private set
     }
 }

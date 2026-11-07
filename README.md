@@ -1,67 +1,74 @@
 # Purple Messenger Lite
 
-A lightweight, Messenger Lite-style chat app for Android 10 and newer (target device: Realme 5, arm64), with two built-in extras:
+An Android app that shows **Facebook's own Messages website** (`https://www.facebook.com/messages/`) inside a native Jetpack Compose shell, with two built-in extras:
 
-- **Voice changer.** Tap the microphone in a conversation, pick a voice (Normal, Monster, Ghost, Robot, Alien, Digital Monster), record, preview, then send. It is shared as an M4A audio file through Messenger's share target or the Android share sheet. It is **not** a native Messenger voice note.
-- **Link scanner.** Tap the shield icon in the chat list header, add your own free VirusTotal API key, and check a link before you open it. The app never opens the scanned link for you.
+- **Voice changer.** Pick a voice (Normal, Monster, Ghost, Robot, Alien, Digital Monster), record, preview, then share the clip as an M4A audio file through Messenger's share target or the Android share sheet. It is **not** a native Messenger voice note.
+- **Link scanner.** Add your own free VirusTotal API key and check a link before you open it. The app never opens the scanned link for you.
 
-This is a fork of [MathRoda's Messenger clone](https://github.com/MathRoda/Messenger-clone) (Apache 2.0). The chat itself runs on **Stream Chat**, so this is a separate messaging service and **not your Facebook inbox**.
+This is a fork of [MathRoda's Messenger clone](https://github.com/MathRoda/Messenger-clone) (Apache 2.0). The Stream Chat SDK and every Stream-based screen have been removed; there are no fake or mock conversations.
 
-> **Status: source only, not yet built or tested on a device.** No APK is included, because the environment this was written in had no Android SDK or network. Read [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) and [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md) first. Expect to fix a few compile errors on the first build.
+> **Status: built by CI, not yet tested on a device.** Nothing about Facebook login, conversations, sending or receiving has been tried on a phone. Read [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) and [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md) first.
 
-## What changed from the original project
+## Why a website and not an API
 
-- minSdk 29, app renamed, purple theme, microphone permission, `FileProvider`, `allowBackup` off, HTTPS only.
-- Removed the hardcoded Stream demo API key and demo users. You now sign in with **your own** Stream key (see below).
-- Chat token and VirusTotal key are stored with `EncryptedSharedPreferences`.
-- New code: `voice/` (recording, effects, M4A encoding, sharing, bottom sheet) and `scanner/` (URL checks, VirusTotal client, screen).
+Meta offers no supported API for reading or sending in a personal Messenger inbox. The Messenger Platform is for Facebook Pages and Instagram Professional accounts: it uses Page access tokens and the `pages_messaging` permission, needs app review, and only lets a Page reply within a 24-hour window after a person writes to it. Facebook Login alone does not give access to your inbox. So this app does not try to read your messages itself. It displays Facebook's real website and Facebook's page does everything.
+
+## How it works
+
+- **Sign-in** happens on Facebook's own login page inside the WebView, including its security checks and two-factor prompts. The app has no login form, never sees or stores your password, and never reads cookies or tokens. The WebView keeps its own cookies, which is how you stay signed in between launches.
+- **Everything Messenger does** (conversations, history, sending, receiving, groups, reactions, read receipts, search, contacts, media, voice messages) is Facebook's page doing it. The app does not inject scripts into the page and has no JavaScript bridge.
+- **Staying on Facebook.** The WebView only loads Facebook's own domains over HTTPS. Links to anything else open in a Chrome Custom Tab. Certificate errors stop the load.
+- **Two viewing modes** (menu > Full-screen mode / App shell mode):
+  - *App shell*: purple top bar and bottom navigation around the page.
+  - *Full screen*: only the page; a small handle on the left edge opens the menu.
+  Switching modes does not reload the page.
+- **Desktop site** toggle (monitor icon in the top bar). Facebook may not offer messaging on its mobile site, so if you see an "install Messenger" page, switch to the desktop site. This is untested, see limitations.
+- **Chrome Custom Tab fallback.** If Facebook refuses to load or sign in inside the WebView, the error screen and the menu offer "Open in Chrome tab". That is Chrome itself, with its own separate login.
+- **Sign out and clear data** removes this app's Facebook cookies and site data.
 
 ## Build
 
-You need Android Studio (a version that opens AGP 7.2.1 projects, such as Chipmunk or newer; newer versions may offer to upgrade the plugin, which you can decline for now) with the Android SDK 32 platform installed.
+You need Android Studio (a version that opens AGP 7.2.1 projects, such as Chipmunk or newer) with the Android SDK 32 platform, or just use the GitHub Actions workflow in this repo, which runs the unit tests and builds the debug APK.
 
 1. Open this folder in Android Studio and let Gradle sync.
-2. Build a debuggable APK: `./gradlew assembleDebug` (on Windows: `gradlew.bat assembleDebug`).
-3. The APK is at `app/build/outputs/apk/debug/app-debug.apk`. It is a single universal APK (no splits) and the app ships no native code of its own.
+2. Run the unit tests: `./gradlew testDebugUnitTest`.
+3. Build a debuggable APK: `./gradlew assembleDebug` (Windows: `gradlew.bat assembleDebug`).
+4. The APK is at `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Install on the phone
 
 1. Copy `app-debug.apk` to the phone, or connect it with USB debugging on and run `adb install -r app-debug.apk`.
 2. If you install by tapping the file, allow "Install unknown apps" for your file manager when asked.
 
-## Set up chat (Stream)
-
-1. Create a free app at [getstream.io](https://getstream.io/chat/) and copy its **API key**.
-2. For testing, in the Stream dashboard turn on **Disable Auth Checks** for the app. Then you can leave the token field empty and the app uses a development token. For real use, generate user tokens on a server you control and paste one in.
-3. Open the app and enter the API key and a user ID (letters, numbers, `@`, `_`, `-`). Do the same on a second phone or account with a different user ID to chat.
-
 ## Using the voice changer
 
-Open a conversation and tap the microphone icon. Choose a voice, tap the round microphone button to record, tap stop, then **Play preview**. You can switch voice or change the strength slider after recording and the same clip is re-rendered. Tap **Send via Messenger** (or **Share voice message** if Messenger is not installed), then choose the chat inside Messenger and send.
+Open it from the bottom bar or the menu. Choose a voice, tap the round microphone button to record, tap stop, then **Play preview**. You can switch voice or change the strength slider after recording and the same clip is re-rendered. Tap **Send via Messenger** (or **Share voice message** if Messenger is not installed), then choose the chat inside Messenger and send. Recording stops if you leave the app or a call comes in; what was recorded so far is kept.
 
-Recording stops if you leave the app or a call comes in; what was recorded so far is kept.
+This is separate from Facebook's own voice-message button inside the web page, which uses the microphone through the WebView.
 
 ## Using the link scanner
 
-Tap the shield icon at the top of the chat list. Paste your VirusTotal API key once ([free key](https://www.virustotal.com/gui/join-us)). Type or paste a link and tap **Scan link**.
+Tap **Link scan** in the bottom bar (or the menu). Paste your VirusTotal API key once ([free key](https://www.virustotal.com/gui/join-us)). Type or paste a link and tap **Scan link**.
 
 ## Privacy
 
-- The only permissions are Internet and Microphone. The microphone is requested only when you tap record.
-- Audio is processed on the phone. Recordings are temporary files in the app cache and are deleted when you cancel or replace them; shared files are removed within about an hour.
-- Scanning a link sends that link to VirusTotal (a Google service), which may share submitted links with security vendors. Do not scan links that contain private information.
-- Your VirusTotal key is only sent to VirusTotal. Your chat token is only sent to Stream. Both are stored encrypted on the phone and are never logged.
-- The app collects no analytics and has no hidden data collection of its own. Messages go through Stream, which has its own privacy policy.
+- Permissions: Internet, microphone and camera (both asked only when needed: the microphone when you record in the voice changer or when Facebook's page asks to record a voice message, the camera only if the page asks), plus the no-prompt `MODIFY_AUDIO_SETTINGS` that WebView needs for audio capture.
+- Facebook's page decides what Facebook collects. This app collects no analytics. It stores only display preferences (view mode, desktop site) and your VirusTotal key, which is kept with `EncryptedSharedPreferences`.
+- The WebView accepts cookies, including third-party cookies, because Facebook's site uses them. They stay in the WebView's own store and are never read by the app.
+- Audio from the voice changer is processed on the phone; temporary files are removed within about an hour of sharing.
+- Scanning a link sends that link to VirusTotal. Do not scan links that contain private information.
 
 ## Checks you can run without Android
 
-`tools/jvm-checks/run-checks.sh` compiles and runs the plain-Kotlin checks for the voice effects and the link scanner logic (needs `kotlinc`).
+`tools/jvm-checks/run-checks.sh` compiles and runs the plain-Kotlin checks for the voice effects and the link scanner logic (needs `kotlinc`). The navigation rules in `web/WebConfig.kt` have JVM unit tests in `app/src/test`.
 
 More: [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md), [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md), [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md).
 
 ---
 
 # Original project README
+
+> Historical: this section is the upstream README for the original Stream-based project, kept for attribution. It does not describe this fork.
 
 ![](MessengerClone/messenger-clone.jpg)
 
