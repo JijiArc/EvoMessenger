@@ -27,6 +27,14 @@ What the 43 scanner checks cover: addresses that must be accepted (with and with
 
 Not covered by these checks: how any effect sounds, MediaCodec/MediaMuxer, AudioRecord, MediaPlayer, sharing, permissions, VirusTotal network calls, and every screen.
 
+### Run in GitHub Actions (real Android compile)
+
+On 2026-11-07 the `webview-messenger` branch was built by `.github/workflows/build-apk.yml` (JDK 11 for Gradle, Android SDK 32). The third attempt passed: `testDebugUnitTest` (including `WebConfigTest`, which covers the navigation allow-list, look-alike hosts, link-shim unwrapping, blocked schemes and the desktop user agent) and `assembleDebug`.
+
+The first two attempts failed and were fixed. These were real defects in code that had never been compiled before this: an opt-in annotation missing in `VoiceChangerSheet.kt`, and a JVM name clash between the `strength` property and `setStrength()` in `VoiceChangerViewModel.kt` (function renamed to `updateStrength`). A workflow problem (the SDK tools need JDK 17) was fixed first.
+
+This proves the project compiles and the pure-logic unit tests pass. It proves nothing about how any screen looks or behaves, or anything about Facebook.
+
 ## Part 2: Still to run (from the brief, section 10)
 
 Mark each result yourself on the device. Everything is **NOT RUN**.
@@ -35,7 +43,7 @@ Mark each result yourself on the device. Everything is **NOT RUN**.
 
 | Test | Result |
 |---|---|
-| `./gradlew testDebugUnitTest` and `./gradlew assembleDebug` succeed (the GitHub Actions run for this branch is the evidence) | NOT RUN |
+| `./gradlew testDebugUnitTest` and `./gradlew assembleDebug` succeed | PASSED in GitHub Actions (run 42335731855, 2026-11-07): unit tests ran and passed, debug APK built (about 12 MB). Not run locally. |
 | APK installs on Android 10 (API 29) | NOT RUN |
 | App launches | NOT RUN |
 | Runs on arm64-v8a (Realme 5) | NOT RUN |
