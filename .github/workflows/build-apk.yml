@@ -16,17 +16,25 @@ jobs:
       - name: Check out the code
         uses: actions/checkout@v4
 
-      # The Android Gradle Plugin used by this project (7.2.1) needs JDK 11.
-      - name: Set up JDK 11
+      # The Android SDK command-line tools now need JDK 17 to run (sdkmanager).
+      - name: Set up JDK 17 (for the SDK tools)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '11'
+          java-version: '17'
 
       - name: Set up the Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: 'platforms;android-32 build-tools;32.0.0'
+
+      # The Android Gradle Plugin used by this project (7.2.1) needs JDK 11 to build.
+      # Set up last so Gradle picks JDK 11.
+      - name: Set up JDK 11 (for Gradle)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
 
       - name: Cache Gradle files
         uses: actions/cache@v4
