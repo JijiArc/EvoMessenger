@@ -99,7 +99,7 @@ class VoiceChangerViewModel(application: Application) : AndroidViewModel(applica
         if (phase == Phase.READY) render()
     }
 
-    fun setStrength(value: Float) {
+    fun updateStrength(value: Float) {
         strength = value.coerceIn(AudioEffects.MIN_STRENGTH, AudioEffects.MAX_STRENGTH)
     }
 

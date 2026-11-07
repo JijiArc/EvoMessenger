@@ -162,7 +162,7 @@ fun VoiceChangerSheet(
                                     .heightIn(min = 48.dp)
                                     .semantics { contentDescription = "Effect strength" },
                                 value = viewModel.strength,
-                                onValueChange = { viewModel.setStrength(it) },
+                                onValueChange = { viewModel.updateStrength(it) },
                                 onValueChangeFinished = { viewModel.strengthChangeFinished() },
                                 valueRange = AudioEffects.MIN_STRENGTH..AudioEffects.MAX_STRENGTH,
                                 enabled = !busy,
