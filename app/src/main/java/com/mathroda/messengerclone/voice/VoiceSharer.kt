@@ -33,9 +33,14 @@ object VoiceSharer {
             false
         }
 
+    /** A content:// address for a clip, readable only through this app's own FileProvider. */
+    @Throws(IllegalArgumentException::class)
+    fun uriFor(context: Context, file: File) =
+        FileProvider.getUriForFile(context, "${context.packageName}.voicefiles", file)
+
     fun share(context: Context, file: File, preferMessenger: Boolean): Result {
         val uri = try {
-            FileProvider.getUriForFile(context, "${context.packageName}.voicefiles", file)
+            uriFor(context, file)
         } catch (e: IllegalArgumentException) {
             return Result.FAILED
         }

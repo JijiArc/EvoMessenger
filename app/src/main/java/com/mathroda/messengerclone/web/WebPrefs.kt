@@ -22,13 +22,18 @@ class WebPrefs(context: Context) {
         }
         set(value) = prefs.edit().putString(KEY_MODE, value.name).apply()
 
+    /**
+     * Desktop site is the default: Facebook's mobile site does not offer messaging in a browser, only a
+     * "get the app" page. The key changed from "desktop_site" so a "mobile" choice saved by an earlier
+     * build does not keep the app on the page that cannot message.
+     */
     var desktopSite: Boolean
-        get() = prefs.getBoolean(KEY_DESKTOP, false)
+        get() = prefs.getBoolean(KEY_DESKTOP, true)
         set(value) = prefs.edit().putBoolean(KEY_DESKTOP, value).apply()
 
     private companion object {
         const val FILE = "web_prefs"
         const val KEY_MODE = "view_mode"
-        const val KEY_DESKTOP = "desktop_site"
+        const val KEY_DESKTOP = "desktop_site_v2"
     }
 }

@@ -36,11 +36,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.MaterialTheme
@@ -73,6 +76,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.mathroda.messengerclone.R
 import com.mathroda.messengerclone.ui.theme.BottomSelected
+import com.mathroda.messengerclone.voice.VoiceSharer
+import java.io.File
 
 /**
  * Shows Facebook's own Messages website inside the app.
@@ -88,7 +93,8 @@ import com.mathroda.messengerclone.ui.theme.BottomSelected
 fun MessengerWebView(
     controller: WebController,
     viewModel: MessengerWebViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onVoiceClipAttached: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
@@ -99,6 +105,7 @@ fun MessengerWebView(
     val fileChooser = remember { FileChooserHolder() }
     val permissions = remember { PermissionHolder() }
     val customView = remember { CustomViewHolder() }
+    var voicePromptClip by remember { mutableStateOf<File?>(null) }
 
     val fileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         fileChooser.deliver(WebChromeClient.FileChooserParams.parseResult(result.resultCode, result.data))
@@ -122,6 +129,7 @@ fun MessengerWebView(
             fileChooser = fileChooser,
             permissions = permissions,
             customView = customView,
+            showVoicePrompt = { clip -> voicePromptClip = clip },
             launchFileChooser = { intent -> fileLauncher.launch(intent) },
             launchPermissions = { perms -> permissionLauncher.launch(perms) }
         )
@@ -129,6 +137,50 @@ fun MessengerWebView(
 
     BackHandler(enabled = customView.showing || uiState.canGoBack) {
         if (customView.showing) customView.hide(activity) else controller.goBack()
+    }
+
+    voicePromptClip?.let { clip ->
+        AlertDialog(
+            onDismissRequest = {
+                voicePromptClip = null
+                fileChooser.deliver(null)
+            },
+            title = { Text(stringResource(R.string.voice_attach_title)) },
+            text = { Text(stringResource(R.string.voice_attach_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    voicePromptClip = null
+                    val uri = try {
+                        VoiceSharer.uriFor(context, clip)
+                    } catch (e: IllegalArgumentException) {
+                        null
+                    }
+                    if (uri != null && clip.exists()) {
+                        fileChooser.deliver(arrayOf(uri))
+                        controller.voiceClip = null
+                        onVoiceClipAttached()
+                    } else {
+                        fileChooser.deliver(null)
+                        Toast.makeText(context, R.string.voice_attach_failed, Toast.LENGTH_LONG).show()
+                    }
+                }) { Text(stringResource(R.string.voice_attach_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    voicePromptClip = null
+                    val intent = fileChooser.pickerIntent
+                    if (intent != null) {
+                        try {
+                            fileLauncher.launch(intent)
+                        } catch (e: ActivityNotFoundException) {
+                            fileChooser.deliver(null)
+                        }
+                    } else {
+                        fileChooser.deliver(null)
+                    }
+                }) { Text(stringResource(R.string.voice_attach_other)) }
+            }
+        )
     }
 
     Box(modifier = modifier) {
@@ -209,6 +261,17 @@ fun MessengerWebView(
                     onRetry = retry,
                     onOpenInBrowser = openInBrowser
                 )
+                WebError.Kind.UNAVAILABLE -> ErrorBanner(
+                    text = stringResource(R.string.error_unavailable_banner),
+                    onRetry = retry,
+                    onOpenInBrowser = openInBrowser,
+                    onDismiss = { viewModel.dismissError() },
+                    onSwitchSite = {
+                        viewModel.dismissError()
+                        viewModel.setDesktopSite(!desktop)
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
                 WebError.Kind.HTTP -> ErrorBanner(
                     text = stringResource(R.string.error_http_banner, error.httpStatus),
                     onRetry = retry,
@@ -233,6 +296,7 @@ private class Host(
     val fileChooser: FileChooserHolder,
     val permissions: PermissionHolder,
     val customView: CustomViewHolder,
+    val showVoicePrompt: (File) -> Unit,
     val launchFileChooser: (Intent) -> Unit,
     val launchPermissions: (Array<String>) -> Unit
 )
@@ -266,10 +330,18 @@ private fun createWebView(host: Host, desktop: Boolean): WebView {
         setAcceptThirdPartyCookies(webView, true)
     }
 
+    var lastBlockedToast = 0L
+
     webView.webViewClient = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             if (!request.isForMainFrame) return false
-            return when (val nav = WebConfig.classify(request.url.toString())) {
+            val target = request.url.toString()
+            // With the desktop site on, Facebook's mobile hosts (m., touch., mbasic.) only show a "get the
+            // app" page for messaging, so the same address is opened on www.facebook.com instead.
+            if (host.viewModel.desktopSite.value) {
+                WebConfig.toDesktopHost(target)?.let { view.loadUrl(it); return true }
+            }
+            return when (val nav = WebConfig.classify(target)) {
                 WebConfig.Navigation.Allow -> false
                 is WebConfig.Navigation.External -> {
                     ExternalLinks.openInCustomTab(view.context, nav.url)
@@ -279,7 +351,14 @@ private fun createWebView(host: Host, desktop: Boolean): WebView {
                     ExternalLinks.view(view.context, nav.url)
                     true
                 }
-                WebConfig.Navigation.Block -> true
+                WebConfig.Navigation.Block -> {
+                    val now = System.currentTimeMillis()
+                    if (now - lastBlockedToast > 3_000) {
+                        lastBlockedToast = now
+                        Toast.makeText(view.context, R.string.link_blocked_toast, Toast.LENGTH_SHORT).show()
+                    }
+                    true
+                }
             }
         }
 
@@ -332,6 +411,10 @@ private fun createWebView(host: Host, desktop: Boolean): WebView {
             host.viewModel.onProgress(newProgress)
         }
 
+        override fun onReceivedTitle(view: WebView, title: String?) {
+            host.viewModel.onTitle(title, view.url)
+        }
+
         // Photo, video and file pickers for attachments. The system picker does the work.
         override fun onShowFileChooser(
             webView: WebView,
@@ -340,8 +423,27 @@ private fun createWebView(host: Host, desktop: Boolean): WebView {
         ): Boolean {
             host.fileChooser.deliver(null) // cancel any picker that is still pending
             host.fileChooser.callback = filePathCallback
+
+            // A voice clip the user chose to attach is offered when Facebook opens a picker that takes
+            // audio. The photo and video buttons do not, so they open the normal picker.
+            val clip = host.controller.voiceClip
+            if (clip != null && clip.exists()) {
+                if (WebConfig.acceptsAudio(fileChooserParams.acceptTypes)) {
+                    host.fileChooser.pickerIntent = try {
+                        fileChooserParams.createIntent()
+                    } catch (e: Exception) {
+                        null
+                    }
+                    host.showVoicePrompt(clip)
+                    return true
+                }
+                Toast.makeText(host.context, R.string.voice_not_here_toast, Toast.LENGTH_LONG).show()
+            }
+
             return try {
-                host.launchFileChooser(fileChooserParams.createIntent())
+                val intent = fileChooserParams.createIntent()
+                host.fileChooser.pickerIntent = intent
+                host.launchFileChooser(intent)
                 true
             } catch (e: ActivityNotFoundException) {
                 host.fileChooser.deliver(null)
@@ -409,10 +511,14 @@ private fun createWebView(host: Host, desktop: Boolean): WebView {
 private class FileChooserHolder {
     var callback: ValueCallback<Array<Uri>>? = null
 
+    /** The normal system picker intent for the pending request, kept for "Choose another file". */
+    var pickerIntent: Intent? = null
+
     /** Always answers the pending callback, with null when the user picked nothing. */
     fun deliver(uris: Array<Uri>?) {
         val cb = callback
         callback = null
+        pickerIntent = null
         cb?.onReceiveValue(uris)
     }
 }
@@ -521,14 +627,21 @@ private fun ErrorBanner(
     onRetry: () -> Unit,
     onOpenInBrowser: () -> Unit,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSwitchSite: (() -> Unit)? = null
 ) {
     Surface(modifier = modifier.fillMaxWidth(), elevation = 6.dp, color = MaterialTheme.colors.surface) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(text = text, style = MaterialTheme.typography.body2)
-            Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+            ) {
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_dismiss)) }
-                TextButton(onClick = onOpenInBrowser) { Text(stringResource(R.string.action_open_in_chrome)) }
+                if (onSwitchSite != null) {
+                    TextButton(onClick = onSwitchSite) { Text(stringResource(R.string.action_switch_site)) }
+                }
+                TextButton(onClick = onOpenInBrowser) { Text(stringResource(R.string.action_chrome_short)) }
                 TextButton(onClick = onRetry) { Text(stringResource(R.string.action_retry)) }
             }
         }

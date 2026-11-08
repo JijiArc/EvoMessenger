@@ -62,11 +62,81 @@ class WebConfigTest {
     }
 
     @Test
+    fun getMessengerLinksGoToTheMatchingApp() {
+        assertEquals(
+            Navigation.ViewIntent("market://details?id=com.facebook.orca"),
+            WebConfig.classify("market://details?id=com.facebook.orca")
+        )
+        assertEquals(
+            Navigation.ViewIntent("fb-messenger://user/123"),
+            WebConfig.classify("fb-messenger://user/123")
+        )
+    }
+
+    @Test
+    fun mobileHostsAreRewrittenToTheDesktopHost() {
+        assertEquals(
+            "https://www.facebook.com/messages/t/123?ref=x#top",
+            WebConfig.toDesktopHost("https://m.facebook.com/messages/t/123?ref=x#top")
+        )
+        assertEquals("https://www.facebook.com/", WebConfig.toDesktopHost("https://touch.facebook.com/"))
+        assertEquals("https://www.facebook.com/login", WebConfig.toDesktopHost("https://mbasic.facebook.com/login"))
+    }
+
+    @Test
+    fun desktopRewriteLeavesEverythingElseAlone() {
+        assertEquals(null, WebConfig.toDesktopHost("https://www.facebook.com/messages/"))
+        assertEquals(null, WebConfig.toDesktopHost("https://example.org/m.facebook.com"))
+        assertEquals(null, WebConfig.toDesktopHost("http://m.facebook.com/"))
+        // user-info and port tricks are not rewritten
+        assertEquals(null, WebConfig.toDesktopHost("https://m.facebook.com@evil.example/"))
+        assertEquals(null, WebConfig.toDesktopHost("https://m.facebook.com:8443/"))
+        assertEquals(null, WebConfig.toDesktopHost("not a url"))
+    }
+
+    @Test
+    fun audioPickerDetection() {
+        assertTrue(WebConfig.acceptsAudio(null))
+        assertTrue(WebConfig.acceptsAudio(emptyArray()))
+        assertTrue(WebConfig.acceptsAudio(arrayOf("")))
+        assertTrue(WebConfig.acceptsAudio(arrayOf("*/*")))
+        assertTrue(WebConfig.acceptsAudio(arrayOf("audio/*")))
+        assertTrue(WebConfig.acceptsAudio(arrayOf("image/*", "audio/mp4")))
+        assertTrue(WebConfig.acceptsAudio(arrayOf("image/*,video/*,.m4a")))
+        // the photo and video buttons do not take audio
+        assertFalse(WebConfig.acceptsAudio(arrayOf("image/*", "video/*")))
+        assertFalse(WebConfig.acceptsAudio(arrayOf("image/*,video/*")))
+        assertFalse(WebConfig.acceptsAudio(arrayOf("image/jpeg", "image/png")))
+    }
+
+    @Test
+    fun unavailablePageTitles() {
+        assertTrue(WebConfig.looksUnavailable("This content isn't available right now"))
+        assertTrue(WebConfig.looksUnavailable("This content isn\u2019t available right now"))
+        assertTrue(WebConfig.looksUnavailable("Page Not Found | Facebook"))
+        assertTrue(WebConfig.looksUnavailable("Messenger is unavailable"))
+        assertFalse(WebConfig.looksUnavailable("Messenger"))
+        assertFalse(WebConfig.looksUnavailable("Facebook \u2013 log in or sign up"))
+        assertFalse(WebConfig.looksUnavailable(null))
+    }
+
+    @Test
+    fun safeAddressHidesIdsQueriesAndFragments() {
+        assertEquals(
+            "https://www.facebook.com/messages/t/\u2026",
+            WebConfig.safeAddress("https://www.facebook.com/messages/t/1234567890?token=secret#x")
+        )
+        assertEquals("https://www.facebook.com/messages", WebConfig.safeAddress("https://www.facebook.com/messages/?a=b"))
+        assertEquals("https://www.facebook.com", WebConfig.safeAddress("https://www.facebook.com/"))
+        assertEquals("(none)", WebConfig.safeAddress(null))
+        assertEquals("(none)", WebConfig.safeAddress("  "))
+    }
+
+    @Test
     fun otherSchemesAreBlocked() {
         listOf(
             "intent://scan/#Intent;scheme=zxing;end",
             "fb://profile/1",
-            "market://details?id=com.facebook.orca",
             "javascript:alert(1)",
             "file:///sdcard/x.html",
             "data:text/html,hi",

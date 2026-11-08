@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 class WebError(val kind: Kind, val httpStatus: Int = 0, val url: String? = null) {
-    enum class Kind { NETWORK, SSL, HTTP, RENDERER }
+    enum class Kind { NETWORK, SSL, HTTP, RENDERER, UNAVAILABLE }
 }
 
 data class WebUiState(
@@ -16,6 +16,7 @@ data class WebUiState(
     val progress: Int = 0,
     val canGoBack: Boolean = false,
     val currentUrl: String? = null,
+    val pageTitle: String? = null,
     val error: WebError? = null
 )
 
@@ -38,7 +39,7 @@ class MessengerWebViewModel(application: Application) : AndroidViewModel(applica
 
     fun onPageStarted(url: String?) {
         // A new load clears the previous error. A failing load sets it again right after.
-        _state.update { it.copy(loading = true, progress = 0, currentUrl = url, error = null) }
+        _state.update { it.copy(loading = true, progress = 0, currentUrl = url, pageTitle = null, error = null) }
     }
 
     fun onProgress(progress: Int) {
@@ -51,6 +52,17 @@ class MessengerWebViewModel(application: Application) : AndroidViewModel(applica
 
     fun onCanGoBack(canGoBack: Boolean) {
         _state.update { it.copy(canGoBack = canGoBack) }
+    }
+
+    /**
+     * Facebook shows "this content isn't available" style pages for things its mobile site cannot do.
+     * The title is page metadata only; the app never reads page content.
+     */
+    fun onTitle(title: String?, url: String?) {
+        _state.update { it.copy(pageTitle = title) }
+        if (WebConfig.looksUnavailable(title) && WebConfig.isAllowedHost(url?.let { runCatching { java.net.URI(it).host }.getOrNull() })) {
+            onError(WebError(WebError.Kind.UNAVAILABLE, url = url))
+        }
     }
 
     fun onError(error: WebError) {

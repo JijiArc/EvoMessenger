@@ -2,7 +2,7 @@
 
 An Android app that shows **Facebook's own Messages website** (`https://www.facebook.com/messages/`) inside a native Jetpack Compose shell, with two built-in extras:
 
-- **Voice changer.** Pick a voice (Normal, Monster, Ghost, Robot, Alien, Digital Monster), record, preview, then share the clip as an M4A audio file through Messenger's share target or the Android share sheet. It is **not** a native Messenger voice note.
+- **Voice changer.** A bar docked under the chat. Pick a voice (Normal, Monster, Ghost, Robot, Alien, Digital Monster), record, preview, then **Attach to chat**: the app offers the clip in Facebook's own attach (paperclip) picker, so it goes out from the real chat box as an M4A audio file. It is **not** a native Messenger voice note. A share button is also there for sending through another app.
 - **Link scanner.** Add your own free VirusTotal API key and check a link before you open it. The app never opens the scanned link for you.
 
 This is a fork of [MathRoda's Messenger clone](https://github.com/MathRoda/Messenger-clone) (Apache 2.0). The Stream Chat SDK and every Stream-based screen have been removed; there are no fake or mock conversations.
@@ -11,7 +11,7 @@ This is a fork of [MathRoda's Messenger clone](https://github.com/MathRoda/Messe
 
 ## Why a website and not an API
 
-Meta offers no supported API for reading or sending in a personal Messenger inbox. The Messenger Platform is for Facebook Pages and Instagram Professional accounts: it uses Page access tokens and the `pages_messaging` permission, needs app review, and only lets a Page reply within a 24-hour window after a person writes to it. Facebook Login alone does not give access to your inbox. So this app does not try to read your messages itself. It displays Facebook's real website and Facebook's page does everything.
+Meta offers no supported API for reading or sending in a personal Messenger inbox. The old messenger.com site no longer works for messaging either: Meta shut it down in April 2026 and redirects it to `facebook.com/messages` ([report](https://piunikaweb.com/2026/02/17/meta-messenger-com-shutdown-april-2026/)). The Messenger Platform is for Facebook Pages and Instagram Professional accounts: it uses Page access tokens and the `pages_messaging` permission, needs app review, and only lets a Page reply within a 24-hour window after a person writes to it. Facebook Login alone does not give access to your inbox. So this app does not try to read your messages itself. It displays Facebook's real website and Facebook's page does everything.
 
 ## How it works
 
@@ -22,7 +22,8 @@ Meta offers no supported API for reading or sending in a personal Messenger inbo
   - *App shell*: purple top bar and bottom navigation around the page.
   - *Full screen*: only the page; a small handle on the left edge opens the menu.
   Switching modes does not reload the page.
-- **Desktop site** toggle (monitor icon in the top bar). Facebook may not offer messaging on its mobile site, so if you see an "install Messenger" page, switch to the desktop site. This is untested, see limitations.
+- **Desktop site is the default.** Facebook's mobile site only shows a "get the app" page for messaging, and a first test of this app hit that wall. The app now asks for the desktop site, rewrites links to Facebook's mobile hosts (m., touch., mbasic.) to `www.facebook.com`, and offers a **Switch site** button if Facebook says the page isn't available. The monitor icon in the top bar toggles it. Whether the desktop messaging page then loads and is usable on a phone is **not yet confirmed**.
+- **If messaging still won't load**, the menu has: *Page info* (shows which address and mode you are on, with ids hidden, so you can tell me what happened), *Zoom in/out* (the desktop layout is small on a phone), *Open in Chrome tab*, and *Open the official Messenger app* (shown only when it is installed).
 - **Chrome Custom Tab fallback.** If Facebook refuses to load or sign in inside the WebView, the error screen and the menu offer "Open in Chrome tab". That is Chrome itself, with its own separate login.
 - **Sign out and clear data** removes this app's Facebook cookies and site data.
 
@@ -42,7 +43,9 @@ You need Android Studio (a version that opens AGP 7.2.1 projects, such as Chipmu
 
 ## Using the voice changer
 
-Open it from the bottom bar or the menu. Choose a voice, tap the round microphone button to record, tap stop, then **Play preview**. You can switch voice or change the strength slider after recording and the same clip is re-rendered. Tap **Send via Messenger** (or **Share voice message** if Messenger is not installed), then choose the chat inside Messenger and send. Recording stops if you leave the app or a call comes in; what was recorded so far is kept.
+Tap **Voice** in the bottom bar (or the menu). A bar opens under the chat. Choose a voice, tap the round microphone button to record, tap stop, then use the play button to preview. You can switch voice or change the strength slider after recording and the same clip is re-rendered.
+
+To send it from the chat: tap **Attach to chat** (the bar says it is armed), then tap **Facebook's own paperclip / attach button** in the conversation. The app offers your clip in that picker: tap **Attach voice clip**, then press send in the chat. Facebook receives it as an audio-file attachment, not a native voice note. The photo and video buttons do not take audio, so the app leaves those pickers alone. The share icon sends through Messenger's app or the Android share sheet instead. Recording stops if you leave the app or a call comes in; what was recorded so far is kept.
 
 This is separate from Facebook's own voice-message button inside the web page, which uses the microphone through the WebView.
 

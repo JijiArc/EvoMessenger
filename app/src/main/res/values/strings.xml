@@ -13,6 +13,12 @@
     <string name="action_full_screen">Full-screen mode</string>
     <string name="action_app_shell">App shell mode</string>
     <string name="action_open_in_chrome">Open in Chrome tab (separate login)</string>
+    <string name="action_chrome_short">Chrome</string>
+    <string name="action_switch_site">Switch site</string>
+    <string name="action_zoom_in">Zoom in</string>
+    <string name="action_zoom_out">Zoom out</string>
+    <string name="action_page_info">Page info</string>
+    <string name="action_open_messenger_app">Open the official Messenger app</string>
     <string name="action_voice_changer">Voice changer</string>
     <string name="action_link_scanner">Link scanner</string>
     <string name="action_sign_out">Sign out and clear data</string>
@@ -30,6 +36,9 @@
     <string name="error_generic_title">Something went wrong</string>
     <string name="action_retry">Retry</string>
     <string name="action_dismiss">Dismiss</string>
+    <string name="error_unavailable_banner">Facebook says this page isn\'t available here. Messenger only works on the desktop site, so try switching site mode, or open it in Chrome.</string>
+    <string name="link_blocked_toast">That link can\'t be opened inside this app.</string>
+    <string name="no_app_for_link">No app on this phone can open this link.</string>
     <string name="no_browser">No browser is available to open this link.</string>
     <string name="downloads_unsupported">Downloads are not supported in this app. Use \"Open in Chrome tab\" to save files.</string>
 
@@ -41,4 +50,18 @@
 
     <!-- Permission explanation shown by the system for web permission requests -->
     <string name="permission_denied_toast">Permission was not granted, so Facebook cannot use it.</string>
+
+    <!-- Page info -->
+    <string name="page_info_title">Page info</string>
+    <string name="page_info_body">Site mode: %1$s\nAddress: %2$s\nPage title: %3$s</string>
+    <string name="site_mode_desktop">Desktop site</string>
+    <string name="site_mode_mobile">Mobile site</string>
+
+    <!-- Voice clip attached through Facebook\'s own attach button -->
+    <string name="voice_attach_title">Attach your voice clip?</string>
+    <string name="voice_attach_body">Facebook is asking for a file. Attach the voice clip you just made, or choose a different file.</string>
+    <string name="voice_attach_confirm">Attach voice clip</string>
+    <string name="voice_attach_other">Choose another file</string>
+    <string name="voice_attach_failed">The voice clip could not be attached. Record it again.</string>
+    <string name="voice_not_here_toast">This button only takes photos and videos. Use Facebook\'s paperclip or file button to attach your voice clip.</string>
 </resources>

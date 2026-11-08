@@ -28,7 +28,7 @@ object ExternalLinks {
         try {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         } catch (e: ActivityNotFoundException) {
-            Toast.makeText(context, R.string.no_browser, Toast.LENGTH_LONG).show()
+            Toast.makeText(context, R.string.no_app_for_link, Toast.LENGTH_LONG).show()
         }
     }
 }

@@ -6,12 +6,14 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.mathroda.messengerclone.R
 import com.mathroda.messengerclone.scanner.ScannerActivity
 import com.mathroda.messengerclone.ui.theme.PurpleTheme
 import com.mathroda.messengerclone.voice.VoiceChangerViewModel
@@ -75,6 +77,17 @@ class MainActivity : ComponentActivity() {
         return true
     }
 
+    /** Opens the official Messenger app, for when the web page cannot offer messaging. */
+    private fun openMessengerApp() {
+        val pkg = VoiceSharer.installedMessenger(this)
+        val intent = pkg?.let { packageManager.getLaunchIntentForPackage(it) }
+        if (intent != null) {
+            startActivity(intent)
+        } else {
+            Toast.makeText(this, R.string.no_app_for_link, Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onStop() {
         super.onStop()
         // Android 10 silences background recording, so stop cleanly and keep what was captured.
@@ -92,7 +105,8 @@ class MainActivity : ComponentActivity() {
                     onRecordClick = ::startVoiceRecording,
                     onOpenSettings = ::openAppSettings,
                     onShareVoice = ::shareVoice,
-                    onOpenScanner = { startActivity(ScannerActivity.createIntent(this)) }
+                    onOpenScanner = { startActivity(ScannerActivity.createIntent(this)) },
+                    onOpenMessengerApp = ::openMessengerApp
                 )
             }
         }

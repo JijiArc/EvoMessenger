@@ -35,6 +35,10 @@ The first two attempts failed and were fixed. These were real defects in code th
 
 This proves the project compiles and the pure-logic unit tests pass. It proves nothing about how any screen looks or behaves, or anything about Facebook.
 
+### Reported by the project owner (informal)
+
+After installing the first APK the owner reported: no bugs found; the voice changer worked; the web view loaded ("perfectly fine"); the link scanner worked. Two problems: Messenger was not available through the web view, and the full-screen version showed a broken link. The owner could not send the voice clip inside the chat. No device, Android version or screen details were recorded, so this is a summary of a report, not a test log. It does not replace the table above.
+
 ## Part 2: Still to run (from the brief, section 10)
 
 Mark each result yourself on the device. Everything is **NOT RUN**.
@@ -82,6 +86,16 @@ Every item is **NOT RUN**. Nothing here has been seen working.
 | "Open in Chrome tab" works and shows Facebook there | NOT RUN |
 | "Sign out and clear data" returns to the login page | NOT RUN |
 | Share to Messenger from the voice changer, with Messenger installed and not installed | NOT RUN |
+| Desktop site is the default on first launch; `facebook.com/messages` shows the chat list instead of a "get the app" or broken-link page | NOT RUN |
+| Full-screen mode shows the same working page (the earlier broken-link page is gone) | NOT RUN |
+| Menu > Page info shows the site mode, an address without ids, and the page title | NOT RUN |
+| Zoom in and Zoom out make the desktop page readable | NOT RUN |
+| "Switch site" banner appears when Facebook shows an unavailable page, and switching reloads | NOT RUN |
+| "Open the official Messenger app" appears only when Messenger is installed and opens it | NOT RUN |
+| Voice bar opens under the chat without reloading the page | NOT RUN |
+| Attach to chat, then Facebook's paperclip: the app offers the clip; Attach voice clip sends it into the open conversation | NOT RUN |
+| The clip arrives in the chat and the other person can play it | NOT RUN |
+| Facebook's photo/video button does NOT get the voice-clip prompt | NOT RUN |
 
 ### Voice changer
 

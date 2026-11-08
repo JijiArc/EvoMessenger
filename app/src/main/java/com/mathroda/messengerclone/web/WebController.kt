@@ -6,6 +6,7 @@ import android.webkit.WebView
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import java.io.File
 
 /**
  * Lets the surrounding screen act on the embedded page (reload, back, sign out) without
@@ -17,6 +18,12 @@ class WebController {
     var defaultUserAgent: String = ""
 
     private var appliedDesktop: Boolean? = null
+
+    /**
+     * A finished voice clip that the user chose to attach. While it is set, the next time Facebook opens
+     * a file picker that accepts audio, the app offers this clip. Nothing is injected into the page.
+     */
+    var voiceClip by mutableStateOf<File?>(null)
 
     /** Bumped to throw away the WebView and build a new one (for example after the renderer crashed). */
     var generation by mutableStateOf(0)
@@ -42,6 +49,14 @@ class WebController {
     }
 
     fun currentUrl(): String = webView?.url?.takeIf { it.startsWith("https://") } ?: WebConfig.MESSAGES_URL
+
+    fun zoomIn() {
+        webView?.zoomIn()
+    }
+
+    fun zoomOut() {
+        webView?.zoomOut()
+    }
 
     fun reload() {
         val view = webView ?: return

@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,8 +35,12 @@ import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ZoomIn
+import androidx.compose.material.icons.filled.ZoomOut
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -53,12 +60,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mathroda.messengerclone.R
 import com.mathroda.messengerclone.ui.theme.BottomSelected
-import com.mathroda.messengerclone.voice.VoiceChangerSheet
+import com.mathroda.messengerclone.voice.VoiceBar
 import com.mathroda.messengerclone.voice.VoiceChangerViewModel
 import com.mathroda.messengerclone.web.ExternalLinks
 import com.mathroda.messengerclone.web.MessengerWebView
 import com.mathroda.messengerclone.web.MessengerWebViewModel
 import com.mathroda.messengerclone.web.ViewMode
+import com.mathroda.messengerclone.web.WebConfig
 import com.mathroda.messengerclone.web.WebController
 
 /**
@@ -68,6 +76,8 @@ import com.mathroda.messengerclone.web.WebController
  *
  * Both modes keep the page in the same place in the composition, so switching modes does not
  * reload it or lose the conversation that is open.
+ *
+ * The voice changer is a bar docked under the page (not a pop-up), so it sits inside the chat screen.
  */
 @Composable
 fun MessengerScreen(
@@ -77,16 +87,26 @@ fun MessengerScreen(
     onRecordClick: () -> Unit,
     onOpenSettings: () -> Unit,
     onShareVoice: (preferMessenger: Boolean) -> Boolean,
-    onOpenScanner: () -> Unit
+    onOpenScanner: () -> Unit,
+    onOpenMessengerApp: () -> Unit
 ) {
     val context = LocalContext.current
     val controller = remember { WebController() }
     val mode by webViewModel.viewMode.collectAsState()
     val desktop by webViewModel.desktopSite.collectAsState()
+    val webState by webViewModel.state.collectAsState()
 
     var showMenu by rememberSaveable { mutableStateOf(false) }
     var showVoice by rememberSaveable { mutableStateOf(false) }
     var showSignOut by rememberSaveable { mutableStateOf(false) }
+    var showInfo by rememberSaveable { mutableStateOf(false) }
+
+    // A recorded clip is only offered to Facebook's file picker while it is still the current clip.
+    LaunchedEffect(voiceViewModel.output) {
+        if (controller.voiceClip != null && controller.voiceClip != voiceViewModel.output) {
+            controller.voiceClip = null
+        }
+    }
 
     val isShell = mode == ViewMode.SHELL
 
@@ -127,8 +147,8 @@ fun MessengerScreen(
                             unselectedContentColor = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                         )
                         BottomNavigationItem(
-                            selected = false,
-                            onClick = { showVoice = true },
+                            selected = showVoice,
+                            onClick = { showVoice = !showVoice },
                             icon = { Icon(Icons.Filled.Mic, contentDescription = null) },
                             label = { Text(stringResource(R.string.nav_voice)) },
                             selectedContentColor = MaterialTheme.colors.primary,
@@ -146,13 +166,48 @@ fun MessengerScreen(
                 }
             }
         ) { innerPadding ->
-            MessengerWebView(
-                controller = controller,
-                viewModel = webViewModel,
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-            )
+            ) {
+                // The page stays first in this column, so opening the bar never reloads it.
+                MessengerWebView(
+                    controller = controller,
+                    viewModel = webViewModel,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    onVoiceClipAttached = {
+                        voiceViewModel.finishAfterShare()
+                        voiceViewModel.showMessage("Attached. Press send in the chat.")
+                    }
+                )
+                if (showVoice) {
+                    VoiceBar(
+                        viewModel = voiceViewModel,
+                        armed = controller.voiceClip != null,
+                        onRecordClick = onRecordClick,
+                        onOpenSettings = onOpenSettings,
+                        onToggleAttach = {
+                            controller.voiceClip =
+                                if (controller.voiceClip == null) voiceViewModel.output else null
+                        },
+                        onShare = {
+                            if (onShareVoice(messengerAppInstalled)) {
+                                controller.voiceClip = null
+                                voiceViewModel.finishAfterShare()
+                                showVoice = false
+                            }
+                        },
+                        onClose = {
+                            controller.voiceClip = null
+                            voiceViewModel.resetAll()
+                            showVoice = false
+                        }
+                    )
+                }
+            }
         }
 
         if (!isShell) {
@@ -167,6 +222,7 @@ fun MessengerScreen(
         ActionsDialog(
             desktop = desktop,
             isShell = isShell,
+            messengerAppInstalled = messengerAppInstalled,
             onDismiss = { showMenu = false },
             onReload = { showMenu = false; controller.reload() },
             onToggleDesktop = { showMenu = false; webViewModel.setDesktopSite(!desktop) },
@@ -175,7 +231,11 @@ fun MessengerScreen(
                 webViewModel.setViewMode(if (isShell) ViewMode.FULL_SCREEN else ViewMode.SHELL)
             },
             onOpenInChrome = { showMenu = false; ExternalLinks.openInCustomTab(context, controller.currentUrl()) },
-            onVoice = { showMenu = false; showVoice = true },
+            onVoice = { showMenu = false; showVoice = !showVoice },
+            onZoomIn = { controller.zoomIn() },
+            onZoomOut = { controller.zoomOut() },
+            onPageInfo = { showMenu = false; showInfo = true },
+            onOpenMessengerApp = { showMenu = false; onOpenMessengerApp() },
             onScanner = { showMenu = false; onOpenScanner() },
             onSignOut = { showMenu = false; showSignOut = true }
         )
@@ -197,27 +257,23 @@ fun MessengerScreen(
         )
     }
 
-    if (showVoice) {
-        VoiceChangerSheet(
-            viewModel = voiceViewModel,
-            messengerInstalled = messengerAppInstalled,
-            onRecordClick = onRecordClick,
-            onOpenSettings = onOpenSettings,
-            onSend = {
-                if (onShareVoice(true)) {
-                    voiceViewModel.finishAfterShare()
-                    showVoice = false
-                }
+    if (showInfo) {
+        val mode = stringResource(if (desktop) R.string.site_mode_desktop else R.string.site_mode_mobile)
+        AlertDialog(
+            onDismissRequest = { showInfo = false },
+            title = { Text(stringResource(R.string.page_info_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.page_info_body,
+                        mode,
+                        WebConfig.safeAddress(webState.currentUrl),
+                        webState.pageTitle?.take(80) ?: "(none)"
+                    )
+                )
             },
-            onShareOther = {
-                if (onShareVoice(false)) {
-                    voiceViewModel.finishAfterShare()
-                    showVoice = false
-                }
-            },
-            onDismiss = {
-                voiceViewModel.resetAll()
-                showVoice = false
+            confirmButton = {
+                TextButton(onClick = { showInfo = false }) { Text(stringResource(R.string.action_close)) }
             }
         )
     }
@@ -227,19 +283,24 @@ fun MessengerScreen(
 private fun ActionsDialog(
     desktop: Boolean,
     isShell: Boolean,
+    messengerAppInstalled: Boolean,
     onDismiss: () -> Unit,
     onReload: () -> Unit,
     onToggleDesktop: () -> Unit,
     onToggleMode: () -> Unit,
     onOpenInChrome: () -> Unit,
     onVoice: () -> Unit,
+    onZoomIn: () -> Unit,
+    onZoomOut: () -> Unit,
+    onPageInfo: () -> Unit,
+    onOpenMessengerApp: () -> Unit,
     onScanner: () -> Unit,
     onSignOut: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 ActionRow(Icons.Filled.Refresh, stringResource(R.string.action_reload), onReload)
                 ActionRow(
                     if (desktop) Icons.Filled.PhoneAndroid else Icons.Filled.DesktopWindows,
@@ -251,7 +312,13 @@ private fun ActionsDialog(
                     stringResource(if (isShell) R.string.action_full_screen else R.string.action_app_shell),
                     onToggleMode
                 )
+                ActionRow(Icons.Filled.ZoomIn, stringResource(R.string.action_zoom_in), onZoomIn)
+                ActionRow(Icons.Filled.ZoomOut, stringResource(R.string.action_zoom_out), onZoomOut)
+                ActionRow(Icons.Filled.Info, stringResource(R.string.action_page_info), onPageInfo)
                 ActionRow(Icons.Filled.OpenInBrowser, stringResource(R.string.action_open_in_chrome), onOpenInChrome)
+                if (messengerAppInstalled) {
+                    ActionRow(Icons.Filled.Message, stringResource(R.string.action_open_messenger_app), onOpenMessengerApp)
+                }
                 ActionRow(Icons.Filled.Mic, stringResource(R.string.action_voice_changer), onVoice)
                 ActionRow(Icons.Filled.Security, stringResource(R.string.action_link_scanner), onScanner)
                 ActionRow(Icons.Filled.ExitToApp, stringResource(R.string.action_sign_out), onSignOut)
