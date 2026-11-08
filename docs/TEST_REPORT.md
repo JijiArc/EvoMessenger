@@ -47,7 +47,7 @@ Mark each result yourself on the device. Everything is **NOT RUN**.
 
 | Test | Result |
 |---|---|
-| `./gradlew testDebugUnitTest` and `./gradlew assembleDebug` succeed | PASSED in GitHub Actions (run 42335731855, 2026-11-07): unit tests ran and passed, debug APK built (about 12 MB). Not run locally. |
+| `./gradlew testDebugUnitTest` and `./gradlew assembleDebug` succeed | PASSED in GitHub Actions (latest run 42440856337, 2026-11-08, after the desktop-default and in-chat voice changes): unit tests ran and passed, debug APK built. Not run locally. |
 | APK installs on Android 10 (API 29) | NOT RUN |
 | App launches | NOT RUN |
 | Runs on arm64-v8a (Realme 5) | NOT RUN |
